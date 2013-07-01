@@ -1,0 +1,43 @@
+using System;
+
+using FluentCassandra;
+using FluentCassandra.Connections;
+using NUnit.Framework;
+
+namespace CassandraDemo
+{
+    public class CassandraTest
+    {
+        /**
+         * The cks.ColumnFamilyExists() always returns false
+         * The  var family = db.GetColumnFamily(""); always return a non-null value.
+         * The cassandra-cli doesn't show the column name; however, if the apps rerun the ExecuteNonQuery throws an
+         * Message=Cannot add already existing column family "cats" to keyspace "Moon" exception.
+         */
+        public void FailedTest()
+        {
+            var server = new Server("localhost");
+            using (var db = new CassandraContext(keyspace: "Moon", server: server))
+            {
+                CassandraKeyspace cks = db.Keyspace;
+
+                Boolean exists = cks.ColumnFamilyExists("cats");
+                Console.WriteLine("Exists: [{0}]", exists);
+                Assert.AreEqual(false, exists);
+                if (!exists)
+                {
+                    db.ExecuteNonQuery(@" CREATE COLUMNFAMILY cats (
+                            KEY ascii PRIMARY KEY,
+                            FirstName text,
+                            Age int,
+                        PostedOn timestamp
+                    );");
+                }
+                db.SaveChanges();
+                exists = cks.ColumnFamilyExists("cats");
+                Console.WriteLine("Exists: [{0}]", exists);
+                Assert.AreEqual(true, exists);
+            }
+        }
+    }
+}
